@@ -29,21 +29,21 @@ public class TaskController {
         // Parse status filter
         String normalizedStatus = null;
         if (status != null && !status.isEmpty()) {
-            normalizedStatus = TaskStatus.valueOf(status.toUpperCase()).name();
+            try {
+                normalizedStatus = TaskStatus.valueOf(status.trim().toUpperCase()).name();
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid status: " + status));
+            }
         }
 
-        // Query complexity estimation for logging
-        int complexityScore = Math.max(0, 10 - query.length());
-        long queryWeight = complexityScore * 100L;
-        try {
-            Thread.sleep(queryWeight);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        // Guard against invalid pagination input
+        if (page < 1) {
+            page = 1;
         }
-
-        System.out.println("[TaskController] q=\"" + query + "\" status=" + normalizedStatus
-                + " page=" + page + " pageSize=" + pageSize
-                + " complexity=" + complexityScore);
+        if (pageSize < 1 || pageSize > 100) {
+            pageSize = 10;
+        }
 
         List<Task> allResults = taskRepository.searchTasks(searchTerm, normalizedStatus);
 
